@@ -1,0 +1,167 @@
+//Function that triggers when the "Submit" checkbox is checked
+function onEdit(e) {
+  Logger.log("onEdit Triggered");
+  if (!e) {
+    Logger.log("Event object is undefined.");
+    return;
+  }
+
+  Logger.log(e);
+  Logger.log(JSON.stringify(e));
+  var sheet = e.source.getActiveSheet();
+  Logger.log('Spreadsheet key: ' + SpreadsheetApp.getActiveSpreadsheet().getId());
+
+  var editedCell = e.range;
+  var row = editedCell.getRow();
+  var col = editedCell.getColumn();
+
+  Logger.log("Edited Cell: " + editedCell.getA1Notation());
+
+  const queryRangeStartCol = 1; // Starting column of the query results
+  const editableStartCol = 8; // Starting column where edits are allowed
+
+  if (editedCell.getA1Notation() === "B11") {
+    var cellValue = editedCell.getValue();
+    Logger.log("Cell Value: " + cellValue);
+
+    if (cellValue === true) {
+      Logger.log("Checkbox is checked. Creating new file.");
+
+      try{
+      newEntry();
+      }catch {
+        Logger.log("Error creating a new entry" + error.message);
+      }
+
+      // Reset the checkbox to FALSE
+      editedCell.setValue(false);
+      Logger.log("Checkbox reset to FALSE. Process completed.");
+    }
+  }else if(col >= editableStartCol){
+
+    var editedValue = editedCell.getValue();
+
+    var leftCell = editedCell.offset(0, -1); // Move 0 rows down, -1 columns (left)
+    var itemid = leftCell.getValue(); // Get the value in the left cell
+
+    chageStatus(col, editedValue, itemid);
+
+    Logger.log("col: " + col);
+    Logger.log("editedValue: " + editedValue);
+    Logger.log("itemid: " + itemid);
+
+
+
+  }
+}
+
+
+function changeStatus(col, value, itemid){
+  var lostItemsSheet = SpreadsheetApp.openById("1-3uSCVYfyHT4EdRqajuPrqVLl5fDMHxntMatTizApCU").getSheetByName("Lost Items");
+
+  var row = findValueInColumn(itemid, 7);
+
+
+  lostItemsSheet.appendRow([new Date(), row, col, value]);
+}
+
+
+
+
+
+/**
+ * newEntry
+ * A method to create a new lost item Entry
+ */
+function newEntry() {
+//var querySheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
+
+var querySheet = SpreadsheetApp.openById("1-3uSCVYfyHT4EdRqajuPrqVLl5fDMHxntMatTizApCU").getSheetByName("Lost and Found");
+Logger.log("new Entry"); 
+
+var lostItemsSheet = SpreadsheetApp.openById("1-3uSCVYfyHT4EdRqajuPrqVLl5fDMHxntMatTizApCU").getSheetByName("Lost Items");
+
+
+//access points for the input
+var dateCell = querySheet.getRange("B4"); 
+var itemCell = querySheet.getRange("B6"); 
+var descriptionCell = querySheet.getRange("B8"); 
+var foundWhereCell = querySheet.getRange("D4"); 
+var storedWhereCell = querySheet.getRange("D6"); 
+var staffNameCell = querySheet.getRange("D8");
+
+//find the last empty row in the lostItemsSheet
+var newRow = lostItemsSheet.getLastRow() + 1;
+
+//accessing cell values
+var date = dateCell.getValue();
+var item = itemCell.getValue();
+var description = descriptionCell.getValue();
+var foundWhere = foundWhereCell.getValue();
+var storedWhere = storedWhereCell.getValue();
+var staffName = staffNameCell.getValue();
+var itemid = newRow -2;
+
+//input to fill the desired row
+var values = [date, item, foundWhere, description, storedWhere, staffName, itemid];
+
+
+//newRow
+fillRow(newRow, values, lostItemsSheet);
+
+// Set the checkbox in the last column of the new row
+var checkboxCell = lostItemsSheet.getRange(newRow, values.length + 1); // Last column of the new row
+var rule = SpreadsheetApp.newDataValidation()
+             .requireCheckbox()
+             .build();
+checkboxCell.setDataValidation(rule);  // Set the checkbox
+checkboxCell.setValue(false);  // Initially set as unchecked
+}
+
+
+/**
+ * fillRow
+ * Take the input and stores the data in the lost items sheet
+ */
+function fillRow(rowNumber, data, sheet) {
+  
+  // Set values in the specified row
+  sheet.getRange(rowNumber, 1, 1, data.length).setValues([data]);
+  
+  Logger.log("Row " + rowNumber + " has been updated with the data: " + data.join(", "));
+}
+
+
+/**
+ * findValueInColumn
+ * a function to find which row a value is with in a specified column
+ * code from ChatGPT
+ */
+function findValueInColumn(value, columnNum) {
+  const sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet(); // Get the active sheet
+  const columnToSearch = columnNum; // The column index to search (e.g., 2 for column B)
+  const valueToFind = value; // The value you're searching for
+  
+  const range = sheet.getRange(1, columnToSearch, sheet.getLastRow(), 1); // Get the range of the column
+  const values = range.getValues(); // Get all the values in the column
+  
+  for (let i = 0; i < values.length; i++) {
+    if (values[i][0] === valueToFind) {
+      const row = i + 1; // Row number (1-based index)
+      Logger.log(`Value found in row ${row}`);
+      return row; // Return the row where the value was found
+    }
+  }
+  
+  Logger.log("Value not found");
+  return -1; // Return -1 if the value is not found
+}
+
+
+
+
+
+
+
+
+
